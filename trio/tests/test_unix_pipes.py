@@ -13,6 +13,7 @@ from ..testing import wait_all_tasks_blocked, check_one_way_stream
 
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="posix only")
 
+# mypy recognizes this.  an assert would break the pytest skipif
 if sys.platform == "win32":
     with pytest.raises(AssertionError):
         # Using sys instead of FdStream since sys is created before the assertion that

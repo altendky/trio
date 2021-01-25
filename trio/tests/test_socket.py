@@ -408,7 +408,7 @@ async def test_SocketType_shutdown():
         pytest.param("::1", tsocket.AF_INET6, marks=binds_ipv6),
     ],
 )
-async def test_SocketType_simple_server(address, socket_type):
+async def test_SocketType_simple_server(address, socket_type) -> None:
     # listen, bind, accept, connect, getpeername, getsockname
     listener = tsocket.socket(socket_type)
     client = tsocket.socket(socket_type)
@@ -481,7 +481,7 @@ class Addresses:
         ),
     ],
 )
-async def test_SocketType_resolve(socket_type, addrs):
+async def test_SocketType_resolve(socket_type, addrs) -> None:
     v6 = socket_type == tsocket.AF_INET6
 
     def pad(addr):
@@ -935,7 +935,7 @@ async def test_SocketType_is_abstract():
 
 
 @pytest.mark.skipif(not hasattr(tsocket, "AF_UNIX"), reason="no unix domain sockets")
-async def test_unix_domain_socket():
+async def test_unix_domain_socket() -> None:
     # Bind has a special branch to use a thread, since it has to do filesystem
     # traversal. Maybe connect should too? Not sure.
 

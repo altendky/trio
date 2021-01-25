@@ -53,7 +53,7 @@ async def test_open_tcp_listeners_specific_port_specific_host():
 
 
 @binds_ipv6
-async def test_open_tcp_listeners_ipv6_v6only():
+async def test_open_tcp_listeners_ipv6_v6only() -> None:
     # Check IPV6_V6ONLY is working properly
     (ipv6_listener,) = await open_tcp_listeners(0, host="::1")
     async with ipv6_listener:
@@ -223,7 +223,7 @@ async def test_serve_tcp():
 )
 async def test_open_tcp_listeners_some_address_families_unavailable(
     try_families, fail_families
-):
+) -> None:
     fsf = FakeSocketFactory(
         10, raise_on_family={family: errno.EAFNOSUPPORT for family in fail_families}
     )

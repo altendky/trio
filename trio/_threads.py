@@ -3,6 +3,7 @@
 import threading
 import queue as stdlib_queue
 from itertools import count
+from typing import Awaitable, Callable, Optional, TypeVar
 
 import attr
 import inspect
@@ -23,11 +24,14 @@ from ._util import coroutine_or_error
 # Global due to Threading API, thread local storage for trio token
 TOKEN_LOCAL = threading.local()
 
-_limiter_local = RunVar("limiter")
+_limiter_local = RunVar[CapacityLimiter]("limiter")
 # I pulled this number out of the air; it isn't based on anything. Probably we
 # should make some kind of measurements to pick a good value.
 DEFAULT_LIMIT = 40
 _thread_counter = count()
+
+_AFn = TypeVar("_AFn", bound=Callable[..., Awaitable[object]])
+_T = TypeVar("_T")
 
 
 def current_default_thread_limiter():
@@ -55,8 +59,16 @@ class ThreadPlaceholder:
     name = attr.ib()
 
 
+# TODO: maybe we don't want to ban Any in decorated functions?  just any? maybe
+#       then we would just ignore the line with the Any?  (it is the callable's
+#       unspecified parameter list)
 @enable_ki_protection
-async def to_thread_run_sync(sync_fn, *args, cancellable=False, limiter=None):
+async def to_thread_run_sync(  # type: ignore[misc]
+    sync_fn: Callable[..., _T],
+    *args: object,
+    cancellable: bool = False,
+    limiter: Optional[CapacityLimiter] = None,
+) -> _T:
     """Convert a blocking operation into an async operation using a thread.
 
     These two lines are equivalent::
@@ -204,7 +216,7 @@ async def to_thread_run_sync(sync_fn, *args, cancellable=False, limiter=None):
         else:
             return trio.lowlevel.Abort.FAILED
 
-    return await trio.lowlevel.wait_task_rescheduled(abort)
+    return await trio.lowlevel.wait_task_rescheduled(abort)  # type: ignore[no-any-return]
 
 
 def _run_fn_as_system_task(cb, fn, *args, trio_token=None):
@@ -238,7 +250,7 @@ def _run_fn_as_system_task(cb, fn, *args, trio_token=None):
     return q.get().unwrap()
 
 
-def from_thread_run(afn, *args, trio_token=None):
+def from_thread_run(afn: _AF, *args: object, trio_token: Optional[TrioToken] = None):
     """Run the given async function in the parent Trio thread, blocking until it
     is complete.
 
@@ -273,9 +285,11 @@ def from_thread_run(afn, *args, trio_token=None):
           to enter Trio.
     """
 
-    def callback(q, afn, args):
+    def callback(q, afn: _AFn, args: object):
+        unprotected_afn: _AFn
+
         @disable_ki_protection
-        async def unprotected_afn():
+        async def unprotected_afn() -> object:
             coro = coroutine_or_error(afn, *args)
             return await coro
 

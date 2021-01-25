@@ -17,7 +17,7 @@ from . import _run
 # tracking machinery. Since our traps are public APIs, we make them real async
 # functions, and then this helper takes care of the actual yield:
 @types.coroutine
-def _async_yield(obj):
+def _async_yield(obj: object) -> object:
     return (yield obj)
 
 
